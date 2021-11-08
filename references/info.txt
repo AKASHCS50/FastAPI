@@ -1,0 +1,21 @@
+: https://fastapi.tiangolo.com/
+- We need async before def in case of asynchronous methods taking time
+- We use get for request
+- The first to path url is selected by fast api, thus order of methods matter
+: https://pydantic-docs.helpmanual.io/
+>
+@ app.get("/posts/{id}")
+def get_post(id: int, response: Response):
+    result = next((post for post in POSTS if post['id'] == id), None)
+    if result == None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": f"Post with id: {id} was not found"}
+    return {"data": result}
+- Builtin Documentation support
+    : http://localhost:8000/doc - SwaggerUI
+    : http://localhost:8000/redoc - Redoc
+- Instead of using database drivers like psycopg2 we can use Object Relational Models (ORM's) like SQL Alchemy
+
+
+
+

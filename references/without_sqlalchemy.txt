@@ -1,0 +1,87 @@
+from typing import Optional
+from fastapi import FastAPI, Response, status, HTTPException
+# from fastapi.params import Body
+from pydantic import BaseModel
+from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
+app = FastAPI()
+
+
+class Post(BaseModel):
+    title: str
+    content: str
+    published: bool = True  # default value
+    # rating: Optional[int] = None  # optional field defaulting to None
+
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost', database='fastapi', user='postgres',
+                                password='AKASHpostgresql121', cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("Database connected Successfully...")
+        break
+    except Exception as error:
+        print("Could not connect to database...")
+        print("Error: ", error)
+        time.sleep(2)
+
+
+@ app.get("/")
+def root():
+    return {"message": "Hello World"}
+
+
+@ app.get("/posts")
+def get_posts():
+    cursor.execute("""SELECT * FROM posts""")
+    POSTS = cursor.fetchall()
+    return {'data': POSTS}
+
+
+# def create_posts(payload: dict = Body(...)):
+# title str*, content str*
+@ app.post("/posts", status_code=status.HTTP_201_CREATED)
+def create_posts(post: Post):
+    cursor.execute("""INSERT INTO posts(title, content, published) VALUES (%s, %s, %s) RETURNING *""", (post.title, post.content, post.published))
+    # Input sanitized to avoid SQL injection and not directly used in query
+    POSTS = cursor.fetchone()
+    conn.commit()
+    return {"data": POSTS}
+
+
+@ app.get("/posts/{id}")
+def get_post(id: int):
+    cursor.execute("""SELECT * FROM posts WHERE id=%s""", (str(id),))
+    POSTS = cursor.fetchone()
+    if not POSTS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} was not found")
+    return {'data': POSTS}
+
+
+@ app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(id: int):
+    cursor.execute("""DELETE FROM posts WHERE id=%s RETURNING *""", (str(id),))
+    POSTS = cursor.fetchone()
+    conn.commit()
+    if not POSTS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} was not found")
+    return {'data': POSTS}
+
+
+@ app.put("/posts/{id}")
+def update_post(id: int, post: Post):
+    cursor.execute("""UPDATE posts SET title=%s, content=%s, published=%s WHERE id=%s RETURNING *""", (post.title, post.content, post.published, str(id)))
+    POSTS = cursor.fetchone()
+    conn.commit()
+    if not POSTS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} was not found")
+    return {'data': POSTS}
+
+
+
