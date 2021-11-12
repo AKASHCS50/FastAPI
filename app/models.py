@@ -1,4 +1,3 @@
-from sqlalchemy.sql.expression import false, null
 from .database import Base
 from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import TIMESTAMP, String, Integer, Boolean
